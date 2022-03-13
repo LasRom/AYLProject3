@@ -1,0 +1,5 @@
+python-telegram-bot==13.11
+requests==2.27.1
+SQLAlchemy==1.4.32
+beautifulsoup4==4.10.0
+fake-useragent==0.1.11
