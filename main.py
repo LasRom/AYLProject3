@@ -33,8 +33,9 @@ def start(update, context):
         db_sess.commit()
         # создаю клавиатуру
         CHAT_ID = update.effective_chat.id
-        reply_keyboard = [['/help']]
-        markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+        reply_keyboard = [['/help'], ["/log_in", "/re_log_in"], ["/num_fours_per_quarter"],
+                          ["/set_score", "/get_lesson"], ["/set_city", "/get_city_weather"]]
+        markup = ReplyKeyboardMarkup(reply_keyboard)
         update.message.reply_text(
             "Привет меня зовут Воппер. Меня написали, чтобы я помогал школьникам, учащимся в "
             "школах Республики Татарстан. Отправь мне /help, и я покажу на что способен.", reply_markup=markup)
@@ -323,4 +324,3 @@ def main():
 # Запускаем функцию main() в случае запуска скрипта.
 if __name__ == '__main__':
     main()
-
