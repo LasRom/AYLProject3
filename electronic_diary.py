@@ -11,6 +11,7 @@ head = {
 }
 
 
+
 def registration(login, password):
     url_logon = 'https://edu.tatar.ru/logon'
     params = {
@@ -103,3 +104,4 @@ def password_validation(login, password):
         return False
     else:
         return True
+

@@ -25,7 +25,8 @@ def start(update, context):
                                           ).first()
         # создаю клавиатуру
         reply_keyboard = [['/help'], ["/log_in", "/re_log_in"], ["/num_fours_per_quarter"],
-                          ["/set_score", "/get_lesson"], ["/set_city", "/get_city_weather"]]
+                          ["/set_score", "/get_lesson"], ["/set_city", "/get_city_weather"],
+                          ["/add_job", "/get_job", "/del_job"]]
         markup = ReplyKeyboardMarkup(reply_keyboard)
         if user:
             update.message.reply_text("Привет, я тебя помню. Кратко расскажу о себе. Меня написали, "
@@ -71,7 +72,10 @@ def help(update, context):
                                   "/get_lesson - Отправлю тебе уроки на сегодня.\n"
                                   "/set_city <ваш город> - Сохраню твой город, чтобы позже каждое утро "
                                   "радовать тебя погодой\n"
-                                  "/get_city_weather - Отправлю погоду в твоем городе.")
+                                  "/get_city_weather - Отправлю погоду в твоем городе.\n"
+                                  "/get_job - Распечатаю все твои задачи.\n"
+                                  "/add_job - Добавлю задачу к списку твоих дел.\n"
+                                  "/del_job <номер задачи> - Удалю задачу под указанным номером.")
     except AttributeError:
         pass
 
@@ -341,7 +345,7 @@ def get_job(update, context):
     except AttributeError:
         pass
     except BaseException:
-        update.message.reply_text("Ой, что-то пошло не так.")
+        update.message.reply_text("Ой, что-то пошло не так. Скорее всего у тебя просто нет задач, а я запутался :(")
         return ConversationHandler.END
 
 
