@@ -30,17 +30,17 @@ def registration(login, password):
 def get_schedule_for_today(login, password):
     cookie = registration(login, password)
     url = "https://edu.tatar.ru/user/diary/week"
-    response_week = requests.get(url, cookies=cookie)
+    response_week = requests.get(url, cookies=cookie, proxies=proxies)
     bs = BeautifulSoup(response_week.text, "html.parser")
     url_today = bs.find_all("a", class_="g-button")[0]["href"]
     weekday = datetime.datetime.weekday(datetime.datetime.now())
     if weekday != 6:
         for _ in range(weekday % 3):
-            response_fake_today = requests.get(url_today, cookies=cookie)
+            response_fake_today = requests.get(url_today, cookies=cookie, proxies=proxies)
             bs_correct = BeautifulSoup(response_fake_today.text, "html.parser")
             url_next_day = bs_correct.find_all("span", class_="nextd")
             url_today = url_next_day[0].find_all("a")[0]["href"]
-        response_real_today = requests.get(url_today, cookies=cookie)
+        response_real_today = requests.get(url_today, cookies=cookie, proxies=proxies)
         bs_today = BeautifulSoup(response_real_today.text, "html.parser")
         items = bs_today.find_all("td", style="vertical-align: middle;")
 
@@ -59,7 +59,7 @@ def get_num_fours(login, password, score):
     try:
         cookie = registration(login, password)
         url_term = 'https://edu.tatar.ru/user/diary/term'
-        response_2 = requests.get(url_term, cookies=cookie)
+        response_2 = requests.get(url_term, cookies=cookie, proxies=proxies)
 
         bs = BeautifulSoup(response_2.text, "html.parser")
         tables = bs.find_all("table", {'class': 'table term-marks'})
