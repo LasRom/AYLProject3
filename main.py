@@ -107,11 +107,11 @@ def getting_score(update, context):
             if not 2 <= float(num) <= 4.90:
                 raise ValueError
             # Если все нормально, то добавляем в число в БД
-            update.message.reply_text(f"Теперь бал равен {num}")
             db_sess = db_session.create_session()
             user_score = db_sess.query(User).filter(User.chat_id == update.effective_chat.id
                                                     ).first()
             user_score.score = float(num)
+            update.message.reply_text(f"Теперь бал равен {num, user_score}")
             db_sess.commit()
             return ConversationHandler.END
         except ValueError:
