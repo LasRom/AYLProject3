@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 import datetime
+from config import login_proxy, password_proxy
 
 ua = UserAgent()
 random_ua = ua.random
@@ -10,6 +11,9 @@ head = {
     'User-Agent': random_ua
 }
 
+proxies = {
+    "https": f"http://{login_proxy}:{password_proxy}@194.242.127.92:8000"
+}
 
 
 def registration(login, password):
@@ -18,7 +22,7 @@ def registration(login, password):
         'main_login2': login,
         'main_password2': password
     }
-    response_logon = requests.post(url_logon, params=params, headers=head)
+    response_logon = requests.post(url_logon, params=params, headers=head, proxies=proxies)
     cookie = response_logon.cookies
     return cookie
 
@@ -99,9 +103,11 @@ def password_validation(login, password):
         'main_login2': login,
         'main_password2': password
     }
-    response_logon = requests.post(url_logon, params=params, headers=head)
+    response_logon = requests.post(url_logon, params=params, headers=head, proxies=proxies)
     if response_logon.text[17] == "h" or not response_logon:
         return False
     else:
         return True
 
+
+print(registration("5013030876", "r#$KFDbi"))
