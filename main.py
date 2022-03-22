@@ -111,7 +111,7 @@ def getting_score(update, context):
             user_score = db_sess.query(User).filter(User.chat_id == update.effective_chat.id
                                                     ).first()
             user_score.score = float(num)
-            update.message.reply_text(f"Теперь бал равен f{num, user_score}")
+            update.message.reply_text(f"Теперь бал равен {num}")
             db_sess.commit()
             return ConversationHandler.END
         except ValueError:
