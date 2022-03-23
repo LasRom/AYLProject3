@@ -480,7 +480,7 @@ def main():
     jq = updater.job_queue
     # добавляю планировщик
     job_weather = jq.run_daily(get_city_weather_r, time=datetime.time(4), days=(0, 1, 2, 3, 4, 5, 6))
-    job_lessons = jq.run_daily(get_lesson_r, time=datetime.time(4), days=(0, 1, 2, 3, 4, 5))
+    job_lessons = jq.run_daily(get_lesson_r, time=datetime.time(4), days=(0, 1, 2, 3, 4, 5, 6))
     dp.add_handler(MessageHandler(Filters.text, text))
     updater.start_polling()
     updater.idle()
