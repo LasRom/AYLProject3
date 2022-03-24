@@ -9,6 +9,7 @@ from data import db_session
 from data.users import User
 from weather import get_weather
 from config import api_token
+from news import get_news
 
 # Почти в каждой функции есть обработчик ошибки AttributeError, т.к. во время тестов я заметил, что если пользователь
 # "лайкает" свое сообщение(там где есть команда), то он ее вызывает.
@@ -27,7 +28,7 @@ def start(update, context):
         user = db_sess.query(User).filter(User.chat_id == update.effective_chat.id
                                           ).first()
         # создаю клавиатуру
-        reply_keyboard = [['/help', '/donat'],
+        reply_keyboard = [['/help', '/donat', '/news'],
                           ["/log_in", "/re_log_in"],
                           ["/set_score", "/get_lesson"],
                           ["/num_fours_per_quarter"],
@@ -62,7 +63,7 @@ def start(update, context):
                 "школах Республики Татарстан. Отправь мне /help, и я покажу на что способен.", reply_markup=markup)
         db_sess.commit()
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -85,7 +86,8 @@ def help(update, context):
                                   "/add_job - Добавлю задачу к списку твоих дел.\n"
                                   "/del_job <номер задачи> - Удалю задачу под указанным номером.\n"
                                   "/donat - Отправлю тебе данные своего создателя, "
-                                  "если ты захочешь поддержать его материально\n")
+                                  "если ты захочешь поддержать его материально\n"
+                                  "/news - Расскажу что происходит в мире.")
     except AttributeError:
         pass
     except BaseException as e:
@@ -98,7 +100,7 @@ def set_score(update, context):
         update.message.reply_text("В следующем сообщении укажите нужный бал, не меньше 2-х и не больше 4.90")
         return 1
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -126,7 +128,7 @@ def getting_score(update, context):
                                       "следующем сообщении")
             return 1
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -144,7 +146,7 @@ def re_log_in(update, context):
             update.message.reply_text("Вы и так не авторизованы.")
         db_sess.commit()
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -166,7 +168,7 @@ def log_in(update, context):
             update.message.reply_text(ERROR_DB)
         db_sess.commit()
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -177,7 +179,7 @@ def login(update, context):
         context.user_data['login'] = update.message.text
         return 2
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -207,7 +209,7 @@ def password(update, context):
             update.message.reply_text("Ой-ой, что-то пошло не так, проверьте правильность пароля или логина. ")
             return ConversationHandler.END
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -216,7 +218,7 @@ def stop(update, context):
     try:
         update.message.reply_text("Регистрация отменена.")
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -243,7 +245,7 @@ def num_fours_per_quarter(update, context):
         else:
             update.message.reply_text(ERROR_DB)
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -269,7 +271,7 @@ def set_city(update, context):
         else:
             update.message.reply_text("Вы не передали город. Чтобы добавить ваш город напишите /set_city <ваш город>")
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -309,7 +311,7 @@ def get_city_weather(update, context):
             update.message.reply_text(ERROR_DB)
         db_sess.commit()
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -328,7 +330,7 @@ def get_lesson(update, context):
         else:
             update.message.reply_text(ERROR_DB)
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -370,7 +372,7 @@ def add_job(update, context):
         update.message.reply_text("В следующем сообщении отправте задачу")
         return 1
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -385,7 +387,7 @@ def write_job(update, context):
         update.message.reply_text("Я добавил твою задачу")
         return ConversationHandler.END
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
         return ConversationHandler.END
@@ -409,7 +411,7 @@ def get_job(update, context):
         else:
             update.message.reply_text(ERROR_FILE)
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
         return ConversationHandler.END
@@ -444,7 +446,7 @@ def del_job(update, context):
         else:
             update.message.reply_text(ERROR_FILE)
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
         return ConversationHandler.END
@@ -456,7 +458,23 @@ def donat(update, conext):
         update.message.reply_text("Если ты и правда хочешь отблагодарить моего создателя то держи данные:\n"
                                   "Tinkoff, Qiwi и Sberbank привязаны к номеру 89869052174")
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
+        pass
+    except BaseException as e:
+        update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
+
+
+def news(update, context):
+    try:
+        sp_news = get_news()
+        if sp_news:
+            for el in sp_news:
+                update.message.reply_text(f"{el[0]} - {el[1]}")
+            update.message.reply_text("Вся информация взята с сайта ria.ru")
+        else:
+            update.message.reply_text(f"Что-то пошло не так. Скорее всего сервис с которого я брал информацию "
+                                      f"временно не работает.")
+    except AttributeError:
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -474,6 +492,7 @@ def main():
     dp.add_handler(CommandHandler("get_job", get_job))
     dp.add_handler(CommandHandler("del_job", del_job, pass_job_queue=True))
     dp.add_handler(CommandHandler("donat", donat))
+    dp.add_handler(CommandHandler("news", news))
     # создаю сценарии
     log_in_scenario = ConversationHandler(
         entry_points=[CommandHandler('log_in', log_in)],
