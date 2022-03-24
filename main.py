@@ -3,6 +3,7 @@ from telegram.ext import Updater, MessageHandler, Filters
 from telegram.ext import CommandHandler, ConversationHandler
 from telegram import ReplyKeyboardMarkup
 import datetime
+import os.path
 import electronic_diary
 from data import db_session
 from data.users import User
@@ -13,6 +14,9 @@ from config import api_token
 # "лайкает" свое сообщение(там где есть команда), то он ее вызывает.
 
 db_session.global_init("db/blogs.db")
+ERROR_DB = "Я не могу найти тебя в своей базе данных. Скорее всего мой создатель перезагрузил меня. Пропиши /start," \
+           " чтобы снова появиться в базе."
+ERROR_FILE = "Я не могу найти твои задачи. Скорее всего мой создатель перезагрузил меня. Напиши /start"
 
 
 # вызывается при отправке команды /start
@@ -83,7 +87,7 @@ def help(update, context):
                                   "/donat - Отправлю тебе данные своего создателя, "
                                   "если ты захочешь поддержать его материально\n")
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        pass
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -110,8 +114,11 @@ def getting_score(update, context):
             db_sess = db_session.create_session()
             user_score = db_sess.query(User).filter(User.chat_id == update.effective_chat.id
                                                     ).first()
-            user_score.score = float(num)
-            update.message.reply_text(f"Теперь бал равен {num}")
+            if user_score:
+                user_score.score = float(num)
+                update.message.reply_text(f"Теперь бал равен {num}")
+            else:
+                update.message.reply_text(ERROR_DB)
             db_sess.commit()
             return ConversationHandler.END
         except ValueError:
@@ -119,7 +126,7 @@ def getting_score(update, context):
                                       "следующем сообщении")
             return 1
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -137,7 +144,7 @@ def re_log_in(update, context):
             update.message.reply_text("Вы и так не авторизованы.")
         db_sess.commit()
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -146,17 +153,20 @@ def re_log_in(update, context):
 def log_in(update, context):
     try:
         db_sess = db_session.create_session()
-        login_edu = db_sess.query(User.login_edu_tatar).filter(User.chat_id == update.effective_chat.id
-                                                               ).first()
-        db_sess.commit()
-        if login_edu[0]:
-            update.message.reply_text("Вы уже регистрировались ранее. Чтобы сменить аккаунт воспользуйтесь командой"
-                                      " /re_log_in")
+        user = db_sess.query(User).filter(User.chat_id == update.effective_chat.id
+                                          ).first()
+        if user:
+            if user.login_edu_tatar:
+                update.message.reply_text("Вы уже регистрировались ранее. Чтобы сменить аккаунт воспользуйтесь командой"
+                                          " /re_log_in")
+            else:
+                update.message.reply_text("В следующем сообщении укажите логин от edu.tatar.ru")
+                return 1
         else:
-            update.message.reply_text("В следующем сообщении укажите логин от edu.tatar.ru")
-            return 1
+            update.message.reply_text(ERROR_DB)
+        db_sess.commit()
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -167,7 +177,7 @@ def login(update, context):
         context.user_data['login'] = update.message.text
         return 2
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -181,20 +191,23 @@ def password(update, context):
         user_password = context.user_data["password"]
         pass_valid_check = electronic_diary.password_validation(user_login, user_password)
         if pass_valid_check:
-            update.message.reply_text("Вы успешно вошли в аккаунт!")
             # Добавляем данные в БД
             db_sess = db_session.create_session()
             user = db_sess.query(User).filter(User.chat_id == update.effective_chat.id
                                               ).first()
-            user.login_edu_tatar = user_login
-            user.hashed_password_edu_tatar = user_password
+            if user:
+                update.message.reply_text("Вы успешно вошли в аккаунт!")
+                user.login_edu_tatar = user_login
+                user.hashed_password_edu_tatar = user_password
+            else:
+                update.message.reply_text(ERROR_DB)
             db_sess.commit()
             return ConversationHandler.END
         else:
             update.message.reply_text("Ой-ой, что-то пошло не так, проверьте правильность пароля или логина. ")
             return ConversationHandler.END
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -203,7 +216,7 @@ def stop(update, context):
     try:
         update.message.reply_text("Регистрация отменена.")
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -214,18 +227,23 @@ def num_fours_per_quarter(update, context):
         db_sess = db_session.create_session()
         user = db_sess.query(User).filter(User.chat_id == update.effective_chat.id
                                           ).first()
-        if user.login_edu_tatar:
-            message = electronic_diary.get_num_fours(user.login_edu_tatar, user.hashed_password_edu_tatar, user.score)
-            db_sess.commit()
-            if message:
-                update.message.reply_text(message)
+        if user:
+            if user.login_edu_tatar:
+                message = electronic_diary.get_num_fours(user.login_edu_tatar,
+                                                         user.hashed_password_edu_tatar, user.score)
+                db_sess.commit()
+                if message:
+                    update.message.reply_text(message)
+                else:
+                    update.message.reply_text(f"Я не нашел предметы ниже балла {user.score}. "
+                                              f"Чтобы поменять бал напишите "
+                                              f"/set_score <Нужный бал>")
             else:
-                update.message.reply_text(f"Я не нашел предметы ниже балла {user.score}. Чтобы поменять бал напишите "
-                                          f"/set_score <Нужный бал>")
+                update.message.reply_text("Вы не авторизовались!!! С авторизацией вам поможет команда /log_in")
         else:
-            update.message.reply_text("Вы не авторизовались!!! С авторизацией вам поможет команда /log_in")
+            update.message.reply_text(ERROR_DB)
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -239,16 +257,19 @@ def set_city(update, context):
                 update.message.reply_text(f"{message}")
             else:
                 city = context.args[0]
-                update.message.reply_text(f"Я сохранил этот город для вас. {message}")
                 db_sess = db_session.create_session()
                 user = db_sess.query(User).filter(User.chat_id == update.effective_chat.id
                                                   ).first()
-                user.city = city
+                if user:
+                    user.city = city
+                    update.message.reply_text(f"Я сохранил этот город для вас. {message}")
+                else:
+                    update.message.reply_text(ERROR_DB)
                 db_sess.commit()
         else:
             update.message.reply_text("Вы не передали город. Чтобы добавить ваш город напишите /set_city <ваш город>")
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -256,7 +277,7 @@ def set_city(update, context):
 # функция отвечает за рассылку погоды в определенное время
 def get_city_weather_r(context):
     try:
-        # проверяю вводил ли пользователь город
+        # проверяю ввёл ли пользователь город
         db_sess = db_session.create_session()
         for user in db_sess.query(User).all():
             print(user.chat_id, user.city)
@@ -277,15 +298,18 @@ def get_city_weather(update, context):
         db_sess = db_session.create_session()
         user = db_sess.query(User).filter(User.chat_id == update.effective_chat.id
                                           ).first()
-        city = user.city
-        db_sess.commit()
-        if city:
-            message = get_weather(city)
-            update.message.reply_text(message)
+        if user:
+            city = user.city
+            if city:
+                message = get_weather(city)
+                update.message.reply_text(message)
+            else:
+                update.message.reply_text("Вы не указали свой город, в этом вам поможет функция /set_city")
         else:
-            update.message.reply_text("Вы не указали свой город, в этом вам поможет функция /set_city")
+            update.message.reply_text(ERROR_DB)
+        db_sess.commit()
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -295,13 +319,16 @@ def get_lesson(update, context):
         db_sess = db_session.create_session()
         user = db_sess.query(User).filter(User.chat_id == update.effective_chat.id
                                           ).first()
-        if user.login_edu_tatar:
-            lessons = electronic_diary.get_schedule_for_today(user.login_edu_tatar, user.hashed_password_edu_tatar)
-            update.message.reply_text(lessons)
+        if user:
+            if user.login_edu_tatar:
+                lessons = electronic_diary.get_schedule_for_today(user.login_edu_tatar, user.hashed_password_edu_tatar)
+                update.message.reply_text(lessons)
+            else:
+                update.message.reply_text("Вы не авторизовались!!! С авторизацией вам поможет команда /log_in")
         else:
-            update.message.reply_text("Вы не авторизовались!!! С авторизацией вам поможет команда /log_in")
+            update.message.reply_text(ERROR_DB)
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -343,7 +370,7 @@ def add_job(update, context):
         update.message.reply_text("В следующем сообщении отправте задачу")
         return 1
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -358,7 +385,7 @@ def write_job(update, context):
         update.message.reply_text("Я добавил твою задачу")
         return ConversationHandler.END
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
         return ConversationHandler.END
@@ -366,17 +393,21 @@ def write_job(update, context):
 
 def get_job(update, context):
     try:
-        result_jobs = "Твои задачи на сегодня:\n"
-        file_jobs = open(f"Jobs/{update.effective_chat.id}.txt")
-        for number, line in enumerate(file_jobs):
-            result_jobs += f"{number + 1}:  {line}\n"
-        if result_jobs == "Твои задачи на сегодня:\n":
-            print(result_jobs)
-            update.message.reply_text("Пока что у тебя нет задач, но ты можешь добавить их, используя "
-                                      "команду /add_job")
+        chat_id = update.effective_chat.id
+        if os.path.exists(f'Jobs/{chat_id}.txt'):
+            result_jobs = "Твои задачи на сегодня:\n"
+            file_jobs = open(f"Jobs/{chat_id}.txt")
+            for number, line in enumerate(file_jobs):
+                result_jobs += f"{number + 1}:  {line}\n"
+            if result_jobs == "Твои задачи на сегодня:\n":
+                print(result_jobs)
+                update.message.reply_text("Пока что у тебя нет задач, но ты можешь добавить их, используя "
+                                          "команду /add_job")
+            else:
+                update.message.reply_text(result_jobs)
+            file_jobs.close()
         else:
-            update.message.reply_text(result_jobs)
-        file_jobs.close()
+            update.message.reply_text(ERROR_FILE)
     except AttributeError:
         update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
     except BaseException as e:
@@ -386,30 +417,34 @@ def get_job(update, context):
 
 def del_job(update, context):
     try:
-        if context.args:
-            numder_job = context.args[0]
-            if not numder_job.isdigit():
-                update.message.reply_text("Ты отправил не число не число")
-            else:
-                file_text_jobs = open(f"Jobs/{update.effective_chat.id}.txt").read().split("\n")
-                flag_number = False
-                result_text = []
-                for number, line in enumerate(file_text_jobs):
-                    if number + 1 == int(numder_job):
-                        flag_number = True
-                    else:
-                        result_text.append(line)
-                file_jobs = open(f"Jobs/{update.effective_chat.id}.txt", "w")
-                if not flag_number:
-                    update.message.reply_text("Я не нашел задачу с таким номером")
+        chat_id = update.effective_chat.id
+        if os.path.exists(f'Jobs/{chat_id}.txt'):
+            if context.args:
+                numder_job = context.args[0]
+                if not numder_job.isdigit():
+                    update.message.reply_text("Ты отправил не число не число")
                 else:
-                    file_jobs.write('\n'.join(result_text))
-                    update.message.reply_text("Я удалил эту задачу")
-                file_jobs.close()
+                    file_text_jobs = open(f"Jobs/{chat_id}.txt").read().split("\n")
+                    flag_number = False
+                    result_text = []
+                    for number, line in enumerate(file_text_jobs):
+                        if number + 1 == int(numder_job):
+                            flag_number = True
+                        else:
+                            result_text.append(line)
+                    file_jobs = open(f"Jobs/{chat_id}.txt", "w")
+                    if not flag_number:
+                        update.message.reply_text("Я не нашел задачу с таким номером")
+                    else:
+                        file_jobs.write('\n'.join(result_text))
+                        update.message.reply_text("Я удалил эту задачу")
+                    file_jobs.close()
+            else:
+                update.message.reply_text("Ты не сказал мне, какую задачу удалить. /del_job <номер задачи>")
         else:
-            update.message.reply_text("Ты не сказал мне, какую задачу удалить. /del_job <номер задачи>")
+            update.message.reply_text(ERROR_FILE)
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
         return ConversationHandler.END
@@ -421,7 +456,7 @@ def donat(update, conext):
         update.message.reply_text("Если ты и правда хочешь отблагодарить моего создателя то держи данные:\n"
                                   "Tinkoff, Qiwi и Sberbank привязаны к номеру 89869052174")
     except AttributeError:
-        update.message.reply_text(f"Пожалуйста не делай так больше :( Ты затрудняешь мою работу.")
+        update.message.reply_text(f"Пожалуйста не делай так больше. Ты затрудняешь мою работу.")
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 

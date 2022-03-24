@@ -63,7 +63,6 @@ def get_num_fours(login, password, score):
 
         bs = BeautifulSoup(response_2.text, "html.parser")
         tables = bs.find_all("table", {'class': 'table term-marks'})
-
         dictionary = {}
         for table in tables:
             for elem in table.find('tbody').find_all('tr')[:-1]:
@@ -108,6 +107,3 @@ def password_validation(login, password):
         return False
     else:
         return True
-
-
-print(registration("5013030876", "r#$KFDbi"))
