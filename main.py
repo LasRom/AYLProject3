@@ -15,6 +15,7 @@ from news import get_news
 # "лайкает" свое сообщение(там где есть команда), то он ее вызывает.
 
 db_session.global_init("db/blogs.db")
+# Сообщения, которые я отправляю в случае ошибок связанные с базой данных и файлом с задачами.
 ERROR_DB = "Я не могу найти тебя в своей базе данных. Скорее всего мой создатель перезагрузил меня. Пропиши /start," \
            " чтобы снова появиться в базе."
 ERROR_FILE = "Я не могу найти твои задачи. Скорее всего мой создатель перезагрузил меня. Напиши /start"
@@ -40,18 +41,19 @@ def start(update, context):
                                       "чтобы я помогал школьникам, учащимся в школах Республики Татарстан. Отправь мне "
                                       "/help, и я покажу на что способен.", reply_markup=markup)
             result_jobs = "Твои задачи на сегодня:\n"
+            # Подключаюсь к задачам пользователя, лежащие в директории Jobs
             file_jobs = open(f"Jobs/{update.effective_chat.id}.txt")
             for number, line in enumerate(file_jobs):
                 result_jobs += f"{number + 1}:  {line}\n"
             if result_jobs == "Твои задачи на сегодня:\n":
-                print(result_jobs)
                 update.message.reply_text("Пока что у тебя нет задач, но ты можешь добавить их, используя "
                                           "команду /add_job", reply_markup=markup)
             else:
                 update.message.reply_text(result_jobs, reply_markup=markup)
+            # Закрываю файл
             file_jobs.close()
         else:
-            # создаю файл для задач
+            # создаю файл для задач и сразу его закрываю
             f = open(f"Jobs/{update.effective_chat.id}.txt", "w+")
             f.close()
             user = User()
@@ -61,6 +63,7 @@ def start(update, context):
             update.message.reply_text(
                 "Привет меня зовут Воппер. Меня написали, чтобы я помогал школьникам, учащимся в "
                 "школах Республики Татарстан. Отправь мне /help, и я покажу на что способен.", reply_markup=markup)
+        # Закрываю БД
         db_sess.commit()
     except AttributeError:
         pass
@@ -107,20 +110,21 @@ def set_score(update, context):
 
 def getting_score(update, context):
     try:
+        # Принимаю число
         num = update.message.text
         try:
             # Проверяю корректность числа
             if not 2 <= float(num) <= 4.90:
                 raise ValueError
-            # Если все нормально, то добавляем в число в БД
+            # Если все нормально, то добавляю в число в БД
             db_sess = db_session.create_session()
             user_score = db_sess.query(User).filter(User.chat_id == update.effective_chat.id
                                                     ).first()
             if user_score:
-                user_score.score = float(num)
+                user_score.score = float(num)  # Добавляю бал в БД
                 update.message.reply_text(f"Теперь бал равен {num}")
             else:
-                update.message.reply_text(ERROR_DB)
+                update.message.reply_text(ERROR_DB)  # Вывожу текст с ошибкой
             db_sess.commit()
             return ConversationHandler.END
         except ValueError:
@@ -254,6 +258,7 @@ def num_fours_per_quarter(update, context):
 def set_city(update, context):
     try:
         if context.args:
+            # Получаю сообщение с погодой
             message = get_weather(context.args[0])
             if "не найден" in message:
                 update.message.reply_text(f"{message}")
@@ -263,7 +268,7 @@ def set_city(update, context):
                 user = db_sess.query(User).filter(User.chat_id == update.effective_chat.id
                                                   ).first()
                 if user:
-                    user.city = city
+                    user.city = city  # добавляю в БД город
                     update.message.reply_text(f"Я сохранил этот город для вас. {message}")
                 else:
                     update.message.reply_text(ERROR_DB)
@@ -283,6 +288,7 @@ def get_city_weather_r(context):
         db_sess = db_session.create_session()
         for user in db_sess.query(User).all():
             print(user.chat_id, user.city)
+            # Смотрю вводил ли пользователь свой город, если да то отправляю ему погоду
             if user.city:
                 message = get_weather(user.city)
                 context.bot.send_message(chat_id=user.chat_id, text=message)
@@ -348,23 +354,6 @@ def get_lesson_r(context):
         db_sess.commit()
     except BaseException as e:
         print(e)
-
-
-def text(update, context):
-    try:
-        message = update.message.text.lower()
-        if 'привет' == message:
-            time = datetime.datetime.now()
-            if time.hour < 10:
-                update.message.reply_text("Доброе утро✋")
-            else:
-                update.message.reply_text("Привет✋")
-        elif "погода" in message:
-            get_city_weather(update, context)
-        elif "уроки" in message or "расписание" in message:
-            get_lesson(update, context)
-    except BaseException as e:
-        update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
 
 def add_job(update, context):
@@ -456,7 +445,7 @@ def del_job(update, context):
 def donat(update, conext):
     try:
         update.message.reply_text("Если ты и правда хочешь отблагодарить моего создателя то держи данные:\n"
-                                  "Tinkoff, Qiwi и Sberbank привязаны к номеру 89869052174")
+                                  "Tinkoff - https://www.tinkoff.ru/rm/lastuvka.roman1/TL4Si85540")
     except AttributeError:
         pass
     except BaseException as e:
@@ -471,10 +460,31 @@ def news(update, context):
                 update.message.reply_text(f"{el[0]} - {el[1]}")
             update.message.reply_text("Вся информация взята с сайта ria.ru")
         else:
-            update.message.reply_text(f"Что-то пошло не так. Скорее всего сервис с которого я брал информацию "
+            update.message.reply_text(f"Что-то пошло не так. Скорее всего сервис, с которого я брал информацию, "
                                       f"временно не работает.")
     except AttributeError:
         pass
+    except BaseException as e:
+        update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
+
+
+def text(update, context):
+    try:
+        message = update.message.text.lower()
+        if 'привет' == message:
+            time = datetime.datetime.now()
+            if time.hour < 10:
+                update.message.reply_text("Доброе утро✋")
+            else:
+                update.message.reply_text("Привет✋")
+        elif "погода" in message:
+            get_city_weather(update, context)
+        elif "уроки" in message or "расписание" in message:
+            get_lesson(update, context)
+        elif "новости" in message:
+            news(update, message)
+        elif "задач" in message:
+            get_job(update, context)
     except BaseException as e:
         update.message.reply_text(f"Ой, что-то пошло не так. Ошибка - {e}")
 
@@ -532,14 +542,14 @@ def main():
     dp.add_handler(add_job_scenario)
     # создаю планировщик
     jq = updater.job_queue
-    # добавляю планировщик
+    # добавляю планы
     job_weather = jq.run_daily(get_city_weather_r, time=datetime.time(4), days=(0, 1, 2, 3, 4, 5, 6))
     job_lessons = jq.run_daily(get_lesson_r, time=datetime.time(4), days=(0, 1, 2, 3, 4, 5, 6))
+    # Обрабатываю остальной текст
     dp.add_handler(MessageHandler(Filters.text, text))
     updater.start_polling()
     updater.idle()
 
 
-# Запускаем функцию main() в случае запуска скрипта.
 if __name__ == '__main__':
     main()

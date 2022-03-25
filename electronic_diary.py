@@ -6,16 +6,19 @@ from config import login_proxy, password_proxy
 
 ua = UserAgent()
 random_ua = ua.random
+# Заголовки к запросу
 head = {
     'Referer': 'https://edu.tatar.ru/logon',
     'User-Agent': random_ua
 }
-
+# Прокси нужен для того, что сайт edu.tatar принимает запросы только из РФ, поскольку сервер Западный,
+# то и запросы блокируются(В данном случае использован русский прокси формата https c IPv-4).
 proxies = {
     "https": f"http://{login_proxy}:{password_proxy}@194.242.127.92:8000"
 }
 
 
+# В данной функции делаю запрос на сайт и возвращаю cookie
 def registration(login, password):
     url_logon = 'https://edu.tatar.ru/logon'
     params = {
@@ -27,13 +30,14 @@ def registration(login, password):
     return cookie
 
 
+# Отправляю уроки на сегодня
 def get_schedule_for_today(login, password):
-    cookie = registration(login, password)
-    url = "https://edu.tatar.ru/user/diary/week"
-    response_week = requests.get(url, cookies=cookie, proxies=proxies)
+    cookie = registration(login, password)  # получаю cookie
+    url = "https://edu.tatar.ru/user/diary/week"  # ссылка
+    response_week = requests.get(url, cookies=cookie, proxies=proxies)  # делаю запрос, он не точный
     bs = BeautifulSoup(response_week.text, "html.parser")
     url_today = bs.find_all("a", class_="g-button")[0]["href"]
-    weekday = datetime.datetime.weekday(datetime.datetime.now())
+    weekday = datetime.datetime.weekday(datetime.datetime.now())  # узнаю какой сегодня день
     if weekday != 6:
         for _ in range(weekday % 3):
             response_fake_today = requests.get(url_today, cookies=cookie, proxies=proxies)
@@ -72,11 +76,13 @@ def get_num_fours(login, password, score):
                         try:
                             dictionary[status[0].text].append(int(element.text))
                         except BaseException as e:
+                            print(e)
                             continue
                     else:
                         try:
                             dictionary[status[0].text] = [int(element.text)]
                         except BaseException as e:
+                            print(e)
                             continue
         dict_result = {}
         for key, value in dictionary.items():
@@ -87,15 +93,17 @@ def get_num_fours(login, password, score):
                     sp.append(5)
                 dict_result[key] = [len(sp) - len(value), average_score]
         result_text = ''
-        schet = 0
+        check = 0
         for key, value in dict_result.items():
-            schet += 1
+            check += 1
             result_text += f"{key} \nНужное количество пятерок: {value[0]} \nТекущий балл: {round(value[1], 2)} \n\n"
-        return result_text + f"\nКоличество предметов {schet}"
+        return result_text + f"\nКоличество предметов {check}"
     except BaseException as e:
+        print(e)
         return "Что-то пошло не так. Попробуйте еще раз авторизоваться."
 
 
+# проверяю верный ли логин и пароль ввел пользователь
 def password_validation(login, password):
     url_logon = 'https://edu.tatar.ru/logon'
     params = {

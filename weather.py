@@ -11,7 +11,8 @@ def get_weather(city):
         humidity = data["main"]["humidity"]
         pressure = data["main"]["pressure"]
         speed = data["wind"]["speed"]
-        return f"В городе {city} температура равна {temp}℃ , давление - {pressure} мм.рт.ст, влажность - {humidity}%, скорость" \
-               f" ветра - {speed}м/с"
+        return f"В городе {city} температура равна {round(temp)}℃ , давление - {pressure} мм.рт.ст, влажность" \
+               f" - {humidity}%, скорость ветра - {speed}м/с"
     except Exception as e:
+        print(e)
         return "Город не найден"
