@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 import datetime
 from config import login_proxy, password_proxy
+
 ua = UserAgent()
 random_ua = ua.random
 # Заголовки к запросу
