@@ -71,19 +71,14 @@ def get_num_fours(login, password, score):
         for table in tables:
             for elem in table.find('tbody').find_all('tr')[:-1]:
                 status = elem.find_all('td')
+                # Берем промежуток от 1 до -3 т.к. там лежит не нужная информация
                 for element in status[1:-3]:
                     if status[0].text in dictionary:
-                        try:
+                        if element.text:
                             dictionary[status[0].text].append(int(element.text))
-                        except BaseException as e:
-                            print(e)
-                            continue
                     else:
-                        try:
+                        if element.text:
                             dictionary[status[0].text] = [int(element.text)]
-                        except BaseException as e:
-                            print(e)
-                            continue
         dict_result = {}
         for key, value in dictionary.items():
             average_score = sum(value) / len(value)
