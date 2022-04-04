@@ -1,15 +1,18 @@
 # Импортируем необходимые библиотеки.
-from telegram.ext import Updater, MessageHandler, Filters
-from telegram.ext import CommandHandler, ConversationHandler
-from telegram import ReplyKeyboardMarkup
 import datetime
 import os.path
+
+from telegram import ReplyKeyboardMarkup
+from telegram.ext import CommandHandler, ConversationHandler
+from telegram.ext import Updater, MessageHandler, Filters
+
 import electronic_diary
+from config import api_token
 from data import db_session
 from data.users import User
-from weather import get_weather
-from config import api_token
 from news import get_news
+from weather import get_weather
+from Backup import send_email, make_reserve_arc
 
 # Почти в каждой функции есть обработчик ошибки AttributeError, т.к. во время тестов я заметил, что если пользователь
 # "лайкает" свое сообщение(там где есть команда), то он ее вызывает.
@@ -19,6 +22,13 @@ db_session.global_init("db/blogs.db")
 ERROR_DB = "Я не могу найти тебя в своей базе данных. Скорее всего мой создатель перезагрузил меня. Пропиши /start," \
            " чтобы снова появиться в базе."
 ERROR_FILE = "Я не могу найти твои задачи. Скорее всего мой создатель перезагрузил меня. Напиши /start"
+
+
+def backup(context):
+    make_reserve_arc('Jobs/', 'Jobs/Jobs.zip')
+    # Использование функции send_email()
+    addr_to = "lastuvkaroman38@gmail.com"  #
+    send_email(addr_to, "Backup", str(datetime.datetime.now()), ['db/blogs.db', 'Jobs/Jobs.zip'])
 
 
 # вызывается при отправке команды /start
@@ -545,6 +555,7 @@ def main():
     # добавляю планы
     job_weather = jq.run_daily(get_city_weather_r, time=datetime.time(4), days=(0, 1, 2, 3, 4, 5, 6))
     job_lessons = jq.run_daily(get_lesson_r, time=datetime.time(4), days=(0, 1, 2, 3, 4, 5, 6))
+    job_backup = jq.run_repeating(backup, 300)
     # Обрабатываю остальной текст
     dp.add_handler(MessageHandler(Filters.text, text))
     updater.start_polling()
